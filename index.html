@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f14">
+<meta name="robots" content="noindex, nofollow">
+<title>Placar de Tênis</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="app">
+
+  <section id="login" class="screen" hidden>
+    <div class="card narrow">
+      <h1>Placar de Tênis</h1>
+      <p class="muted">Entre com o login e a senha que você recebeu.</p>
+      <label class="field"><span>Login</span><input id="loginUser" type="text" autocomplete="username" autocapitalize="none" spellcheck="false"></label>
+      <label class="field"><span>Senha</span><input id="loginPass" type="password" autocomplete="current-password"></label>
+      <p id="loginErr" class="err" role="alert"></p>
+      <button id="loginBtn" class="btn primary big">Entrar</button>
+    </div>
+  </section>
+
+  <section id="home" class="screen" hidden>
+    <div class="card">
+      <h1>Placar de Tênis</h1>
+      <p id="homeVoice" class="muted"></p>
+      <div class="stack">
+        <button id="homeResume" class="btn accent big" hidden>Retomar partida</button>
+        <button id="homeNew" class="btn primary big">Nova partida</button>
+        <button id="homeVoices" class="btn big">Vozes</button>
+        <button id="homeHistory" class="btn big">Histórico</button>
+        <a id="homeDemo" class="btn big" href="demo3d.html">Modelo 3D (demonstração)</a>
+        <button id="homeInstall" class="btn big" hidden>Instalar na tela inicial</button>
+        <button id="homeLogout" class="btn ghost">Sair da conta</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="wizard" class="screen" hidden>
+    <div class="card wiz">
+      <div class="wizhead"><button id="wizBack" class="btn ghost">Voltar</button><div id="wizDots" class="dots" aria-hidden="true"></div><button id="wizHome" class="btn ghost">Início</button></div>
+      <h2 id="wizTitle"></h2>
+      <div id="wizBody"></div>
+      <div class="wizfoot"><button id="wizNext" class="btn primary big">Próximo</button></div>
+    </div>
+  </section>
+
+  <section id="history" class="screen" hidden>
+    <div class="card wide">
+      <div class="wizhead"><button id="histBack" class="btn ghost">Voltar</button><h2>Histórico</h2><button id="histClear" class="btn ghost">Apagar tudo</button></div>
+      <div id="histList"></div>
+    </div>
+  </section>
+
+  <section id="game" class="screen" hidden>
+    <header class="gbar">
+      <button id="gMenu" class="btn" aria-label="Menu">Menu</button>
+      <div class="gclock"><div id="gClock" class="clock">00:00</div><div id="gKind" class="kind">partida</div></div>
+      <button id="gAction" class="btn accent action">Iniciar</button>
+      <div class="gright"><button id="gUndo" class="btn">Desfazer</button><button id="gPause" class="btn">Pausa</button></div>
+    </header>
+    <div id="gMsg" class="gmsg" aria-live="polite"></div>
+    <div class="sides">
+      <button id="sideL" class="side blue" aria-label="Ponto para a esquerda (azul)"><span class="serve" id="srvL">Saque</span><span class="pts" id="ptsL">0</span><span class="setsrow" id="setsL"></span></button>
+      <button id="sideR" class="side yellow" aria-label="Ponto para a direita (amarelo)"><span class="serve" id="srvR">Saque</span><span class="pts" id="ptsR">0</span><span class="setsrow" id="setsR"></span></button>
+    </div>
+    <div id="gPaused" class="paused" hidden>PAUSADO</div>
+    <div id="gEnd" class="endov" hidden></div>
+  </section>
+
+</main>
+<div id="modal" class="modal" hidden></div>
+<div id="rotate" class="rotate" hidden><div>Gire o aparelho para a horizontal</div></div>
+<script src="auth-config.js"></script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
