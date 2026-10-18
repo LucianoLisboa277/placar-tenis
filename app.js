@@ -10,8 +10,11 @@
   var K = { auth: 'placar:auth', settings: 'placar:settings', cur: 'placar:cur', hist: 'placar:hist', vk: 'placar:vk', vver: 'placar:vver' };
   var VOICE_NAME = { F: 'Feminina', M: 'Masculina' };
 
-  var settings = Object.assign({ voice: 'F', volume: 0.9, mute: false, names: ['', ''], cfg: E.normCfg({}) }, LS.get(K.settings, {}));
+  var settings = Object.assign({ voice: 'F', volume: 0.9, mute: false, names: ['', ''], mode: 'S', dnames: ['', '', '', ''], dfirst: [0, 0], cfg: E.normCfg({}) }, LS.get(K.settings, {}));
   if (!Array.isArray(settings.names) || settings.names.length !== 2) settings.names = ['', ''];
+  if (!Array.isArray(settings.dnames) || settings.dnames.length !== 4) settings.dnames = ['', '', '', ''];
+  if (!Array.isArray(settings.dfirst) || settings.dfirst.length !== 2) settings.dfirst = [0, 0];
+  if (settings.mode !== 'D') settings.mode = 'S';
   settings.cfg = E.normCfg(settings.cfg);
   function saveSettings() { LS.set(K.settings, settings); }
 
@@ -256,7 +259,7 @@
   $('homeInstall').onclick = function () { if (installEvt) { installEvt.prompt(); installEvt = null; $('homeInstall').hidden = true; } };
 
   /* ---------- assistente de configuração ---------- */
-  var STEPS = ['Vozes', 'Formato da partida', 'Vantagem', 'Aquecimento', 'Intervalos', 'Primeiro saque', 'Jogadores', 'Resumo'];
+  var STEPS = ['Tipo de partida', 'Vozes', 'Formato da partida', 'Vantagem', 'Aquecimento', 'Intervalos', 'Primeiro saque', 'Jogadores', 'Resumo'];
   var step = 0, wizOnly = false, draft = null;
 
   function openWizard(startAt, only) { draft = E.normCfg(settings.cfg); step = startAt || 0; wizOnly = !!only; show('wizard'); renderStep(); }
@@ -330,34 +333,49 @@
   function renderStep(keepScroll) {
     var c = draft, body = $('wizBody'), h = '';
     $('wizTitle').textContent = STEPS[step];
+    var st = step - 1;
     $('wizDots').innerHTML = STEPS.map(function (_, i) { return '<i class="' + (i === step ? 'on' : '') + '"></i>'; }).join('');
     $('wizBack').style.visibility = step === 0 || wizOnly ? 'hidden' : 'visible';
     $('wizNext').textContent = wizOnly ? 'Concluído' : step === STEPS.length - 1 ? 'Iniciar partida' : 'Próximo';
     $('wizNext').classList.toggle('accent', step === STEPS.length - 1 && !wizOnly);
-    if (step === 0) h = voicesHtml();
-    else if (step === 1) {
+    if (step === 0) h = '<div class="opts two">' + optBtns('mode', [{ v: 'S', t: 'Simples' }, { v: 'D', t: 'Dupla' }], settings.mode) + '</div>';
+    else if (st === 0) h = voicesHtml();
+    else if (st === 1) {
       h = '<div class="group"><span class="lbl">Partida</span><div class="opts three">' + optBtns('sets', [{ v: 1, t: '1 set' }, { v: 2, t: 'Melhor de 3' }, { v: 3, t: 'Melhor de 5' }], c.sets) + '</div></div>' +
         '<div class="group"><span class="lbl">Set</span><div class="opts two">' + optBtns('games', [{ v: 6, t: '6 games', s: 'oficial, tie-break em 6 a 6' }, { v: 4, t: '4 games', s: 'rápido, tie-break em 3 a 3' }], c.games) + '</div></div>' +
         '<div class="group"><span class="lbl">Tie-break</span><div class="opts two">' + optBtns('tbPoints', [{ v: 7, t: '7 pontos' }, { v: 10, t: '10 pontos' }], c.tbPoints) + '</div></div>' +
         (c.sets > 1 ? '<div class="group"><span class="lbl">Set decisivo</span><div class="opts two">' + optBtns('superTb', [{ v: 1, t: 'Super tie-break', s: '10 pontos no lugar do set' }, { v: 0, t: 'Set completo' }], c.superTb ? 1 : 0) + '</div></div>' : '');
-    } else if (step === 2) {
+    } else if (st === 2) {
       h = '<div class="opts two">' + optBtns('noAd', [{ v: 0, t: 'Com vantagem', s: 'deuce e vantagem' }, { v: 1, t: 'Sem vantagem', s: 'ponto de ouro no 40 a 40' }], c.noAd ? 1 : 0) + '</div>';
-    } else if (step === 3) {
+    } else if (st === 3) {
       h = '<div class="opts two">' + optBtns('heat', [{ v: 1, t: 'Com aquecimento' }, { v: 0, t: 'Sem aquecimento' }], c.heat ? 1 : 0) + '</div>' +
         (c.heat ? '<div class="group" style="margin-top:16px"><span class="lbl">Duração</span>' + stepper('heatSec', c.heatSec, 5, 900, 5, fmtSec) + '</div>' : '');
-    } else if (step === 4) {
+    } else if (st === 4) {
       h = '<div class="group"><span class="lbl">Troca de lado (a cada game ímpar, menos o primeiro)</span><div class="opts two">' +
         optBtns('brkChange', [{ v: 1, t: 'Com intervalo' }, { v: 0, t: 'Sem intervalo' }], c.brkChange ? 1 : 0) + '</div>' +
         (c.brkChange ? stepper('brkChangeSec', c.brkChangeSec, 5, 600, 5, fmtSec) : '') + '</div>' +
         '<div class="group"><span class="lbl">Entre sets</span><div class="opts two">' +
         optBtns('brkSet', [{ v: 1, t: 'Com intervalo' }, { v: 0, t: 'Sem intervalo' }], c.brkSet ? 1 : 0) + '</div>' +
         (c.brkSet ? stepper('brkSetSec', c.brkSetSec, 5, 900, 5, fmtSec) : '') + '</div>';
-    } else if (step === 5) {
+    } else if (st === 5) {
       h = '<div class="opts two">' + optBtns('firstServe', [{ v: 0, t: 'Esquerda', s: 'lado azul' }, { v: 1, t: 'Direita', s: 'lado amarelo' }], c.firstServe) + '</div>';
-    } else if (step === 6) {
-      h = '<p class="muted">Opcional. Os nomes aparecem acima do painel e no histórico.</p>' +
-        '<label class="field"><span>Jogador da esquerda</span><input id="nameInL" type="text" maxlength="20" autocomplete="off" value="' + esc(settings.names[0]) + '"></label>' +
-        '<label class="field"><span>Jogador da direita</span><input id="nameInR" type="text" maxlength="20" autocomplete="off" value="' + esc(settings.names[1]) + '"></label>';
+    } else if (st === 6) {
+      if (settings.mode === 'D') {
+        var dn = settings.dnames, df = settings.dfirst;
+        var inp = function (i, ph) { return '<input id="dn' + i + '" type="text" maxlength="20" autocomplete="off" placeholder="' + ph + '" value="' + esc(dn[i]) + '">'; };
+        var pick = function (t) {
+          return '<div class="opts two">' + [0, 1].map(function (k) { return '<button class="btn opt' + (df[t] === k ? ' sel' : '') + '" id="df' + t + k + '" data-first="' + t + k + '">' + esc(dn[t * 2 + k] || ('Jogador ' + (t * 2 + k + 1))) + '</button>'; }).join('') + '</div>';
+        };
+        h = '<p class="muted">Opcional. Escreva os nomes e marque quem saca primeiro em cada dupla.</p>' +
+          '<div class="group"><span class="lbl">Dupla da esquerda</span><div class="opts two">' + inp(0, 'Jogador 1') + inp(1, 'Jogador 2') + '</div></div>' +
+          '<div class="group"><span class="lbl">Dupla da direita</span><div class="opts two">' + inp(2, 'Jogador 3') + inp(3, 'Jogador 4') + '</div></div>' +
+          '<div class="group"><span class="lbl">Primeiro a sacar na dupla da esquerda</span>' + pick(0) + '</div>' +
+          '<div class="group"><span class="lbl">Primeiro a sacar na dupla da direita</span>' + pick(1) + '</div>';
+      } else {
+        h = '<p class="muted">Opcional. Os nomes aparecem acima do painel e no histórico.</p>' +
+          '<label class="field"><span>Jogador da esquerda</span><input id="nameInL" type="text" maxlength="20" autocomplete="off" value="' + esc(settings.names[0]) + '"></label>' +
+          '<label class="field"><span>Jogador da direita</span><input id="nameInR" type="text" maxlength="20" autocomplete="off" value="' + esc(settings.names[1]) + '"></label>';
+      }
     } else {
       h = '<div class="sum">' +
         row('Partida', c.sets === 1 ? '1 set' : c.sets === 2 ? 'Melhor de 3' : 'Melhor de 5') +
@@ -367,13 +385,29 @@
         row('Troca de lado', c.brkChange ? fmtSec(c.brkChangeSec) : 'Sem intervalo') +
         row('Entre sets', c.brkSet ? fmtSec(c.brkSetSec) : 'Sem intervalo') +
         row('Primeiro saque', c.firstServe ? 'Direita' : 'Esquerda') +
-        (settings.names[0] || settings.names[1] ? row('Jogadores', esc(settings.names[0] || 'Esquerda') + ' x ' + esc(settings.names[1] || 'Direita')) : '') +
+        (settings.mode === 'D' ? row('Tipo', 'Dupla') + row('Duplas', esc((settings.dnames[0] || 'Jogador 1') + ' / ' + (settings.dnames[1] || 'Jogador 2')) + ' x ' + esc((settings.dnames[2] || 'Jogador 3') + ' / ' + (settings.dnames[3] || 'Jogador 4'))) +
+          row('Saque inicial', esc(settings.dnames[settings.dfirst[0]] || ('Jogador ' + (settings.dfirst[0] + 1))) + ' e ' + esc(settings.dnames[2 + settings.dfirst[1]] || ('Jogador ' + (3 + settings.dfirst[1])))) :
+          (settings.names[0] || settings.names[1] ? row('Jogadores', esc(settings.names[0] || 'Esquerda') + ' x ' + esc(settings.names[1] || 'Direita')) : '')) +
         row('Voz', VOICE_NAME[settings.voice] + ', ' + countHave(settings.voice) + ' de 28 faixas') + '</div>';
     }
     var y = body.parentNode.scrollTop;
     body.innerHTML = h;
-    if (step === 0) bindVoices(body);
-    if (step === 6) {
+    if (st === 0) bindVoices(body);
+    if (st === 6 && settings.mode === 'D') {
+      [0, 1, 2, 3].forEach(function (i) {
+        $('dn' + i).oninput = function (e) {
+          settings.dnames[i] = e.target.value; saveSettings();
+          var b = $('df' + Math.floor(i / 2) + (i % 2)); if (b) b.textContent = e.target.value || ('Jogador ' + (i + 1));
+        };
+      });
+      body.querySelectorAll('[data-first]').forEach(function (b) {
+        b.onclick = function () {
+          var t = +b.getAttribute('data-first').charAt(0), k = +b.getAttribute('data-first').charAt(1);
+          settings.dfirst[t] = k; saveSettings();
+          [0, 1].forEach(function (q) { $('df' + t + q).classList.toggle('sel', q === k); });
+        };
+      });
+    } else if (st === 6) {
       $('nameInL').oninput = function (e) { settings.names[0] = e.target.value; saveSettings(); };
       $('nameInR').oninput = function (e) { settings.names[1] = e.target.value; saveSettings(); };
     }
@@ -381,6 +415,7 @@
       if (b.getAttribute('data-name') === 'voice') return;
       b.onclick = function () {
         var n = b.getAttribute('data-name'), v = b.getAttribute('data-v');
+        if (n === 'mode') { settings.mode = v; saveSettings(); renderStep(); return; }
         draft[n] = (n === 'noAd' || n === 'heat' || n === 'brkChange' || n === 'brkSet' || n === 'superTb') ? v === '1' : +v;
         draft = E.normCfg(draft); renderStep();
       };
@@ -427,10 +462,19 @@
   function buildPanel() {
     var host = $('pw'), P = window.PANEL, old = host.querySelector('svg.panel');
     if (old) host.removeChild(old);
-    var svg = svgEl('svg', { viewBox: '14 12 322 178', 'class': 'panel', 'aria-hidden': 'true' });
+    var svg = svgEl('svg', { viewBox: '14 -4 322 194', 'class': 'panel', 'aria-hidden': 'true' });
     var digits = [], i;
     for (i = 0; i < 10; i++) digits.push({ ch: null, segs: {} });
     P.segs.forEach(function (sg) { var e = svgEl('polygon', { points: sg[0] <= 3 ? thick(sg[2], 1.15) : sg[2], 'class': 'seg' }); svg.appendChild(e); digits[sg[0]].segs[sg[1]] = e; });
+    var cxs = {};
+    P.segs.forEach(function (sg) {
+      sg[2].split(' ').forEach(function (t) { var x = +t.split(',')[0], c = cxs[sg[0]] || (cxs[sg[0]] = [1e9, -1e9]); if (x < c[0]) c[0] = x; if (x > c[1]) c[1] = x; });
+    });
+    var labels = [];
+    [4, 5, 6, 7, 8, 9].forEach(function (d) {
+      var e = svgEl('text', { x: (cxs[d][0] + cxs[d][1]) / 2, y: 120, 'text-anchor': 'middle', 'class': 'sl' });
+      svg.appendChild(e); labels.push({ el: e, n: null });
+    });
     var traps = P.traps.map(function (pt) { var e = svgEl('polygon', { points: pt, 'class': 'trap' }); svg.appendChild(e); return e; });
     /* relógio mm:ss, 4 dígitos e dois pontos, no retângulo do relógio do painel */
     var clock = [], x = 151.5, y = 49.9, w = 10, hh = 19.4, t = 2.1, g = 0.5;
@@ -448,7 +492,7 @@
     });
     var dots = [y + hh * 0.32, y + hh * 0.68].map(function (cy) { var e = svgEl('circle', { cx: 175, cy: cy, r: 1.2, 'class': 'ck on' }); svg.appendChild(e); return e; });
     host.insertBefore(svg, host.firstChild);
-    panel = { svg: svg, digits: digits, traps: traps, clock: clock, dots: dots };
+    panel = { svg: svg, digits: digits, traps: traps, clock: clock, dots: dots, labels: labels };
   }
   function setDigit(d, ch) {
     if (d.ch === ch) return; d.ch = ch;
@@ -466,6 +510,10 @@
       setDigit(panel.digits[4 + i], c ? String(c.g[0]) : '0');
       setDigit(panel.digits[7 + i], c ? String(c.g[1]) : '0');
     }
+    for (i = 0; i < 6; i++) {   /* número do set acima de cada coluna; acompanha os 3 sets mais recentes */
+      var cc = v.cols[i % 3], n = cc ? cc.n : (i % 3) + 1, lb = panel.labels[i];
+      if (lb.n !== n) { lb.n = n; lb.el.textContent = n; }
+    }
     var ck = v.clock.replace(':', '');
     for (i = 0; i < 4; i++) setDigit(panel.clock[i], ck.charAt(i));
     var run = v.phase !== 'fim';
@@ -476,18 +524,24 @@
   function fitPanel() {
     var wrap = $('panelWrap'), pw = $('pw'); if (!wrap) return;
     var W = wrap.clientWidth, H = wrap.clientHeight; if (!W || !H) return;
-    var w = Math.min(W, H * 322 / 178), h = w * 178 / 322;
+    var w = Math.min(W, H * 322 / 194), h = w * 194 / 322;
     pw.style.width = w + 'px'; pw.style.height = h + 'px'; pw.style.setProperty('--u', (w / 322) + 'px');
   }
   window.addEventListener('resize', fitPanel);
 
   /* ---------- jogo ---------- */
-  var S = null, lastSay = 0, lastTick = 0, ticker = null, lastSave = 0, saved = false, lastTap = [0, 0], menuOpen = false, overlayKey = '';
+  var namesKey = '', S = null, lastSay = 0, lastTick = 0, ticker = null, lastSave = 0, saved = false, lastTap = [0, 0], menuOpen = false, overlayKey = '';
   var wake = null;
 
   function startMatch() {
     ensureCtx(); preload();
-    S = E.reset(settings.cfg); S.names = settings.names.map(function (n) { return String(n || '').trim().slice(0, 20); });
+    S = E.reset(settings.cfg); S.mode = settings.mode;
+    S.names = settings.names.map(function (n) { return String(n || '').trim().slice(0, 20); });
+    if (S.mode === 'D') {
+      var dn = settings.dnames.map(function (n) { return String(n || '').trim().slice(0, 20); });
+      S.team = [[dn[0], dn[1]], [dn[2], dn[3]]];
+      S.d = { next: [settings.dfirst[0], settings.dfirst[1]], tbStart: [0, 0], tbFirst: 0 }; S.dh = [];
+    }
     lastSay = S.sayId; saved = false; menuOpen = false;
     persist(true);
     enterGame();
@@ -541,6 +595,31 @@
     renderGame();
   }
 
+  /* duplas: nomes, quem saca e rodízio */
+  function teamNames(side) { var t = S.team[side]; return [t[0] || ('Jogador ' + (side * 2 + 1)), t[1] || ('Jogador ' + (side * 2 + 2))]; }
+  function sideName(side) { return S.mode === 'D' ? teamNames(side).join(' / ') : (S.names && S.names[side]) || ''; }
+  function setsSum() { return S.sets.reduce(function (a, g) { return a + g[0] + g[1]; }, 0); }
+  function dServerIdx(side) {
+    var d = S.d; if (!S.tb) return d.next[side];
+    var t = Math.floor((S.pts[0] + S.pts[1] + 1) / 2);
+    return (d.tbStart[side] + Math.floor(t / 2)) % 2;
+  }
+  function dAfter(p) {
+    var d = S.d, ended = setsSum() > p.sum; if (!ended) return;
+    if (p.tb) {
+      var T = Math.floor((p.tot + 1) / 2) + 1, f = Math.ceil(T / 2), o = Math.floor(T / 2), first = d.tbFirst;
+      d.next[first] = (d.tbStart[first] + f) % 2; d.next[1 - first] = (d.tbStart[1 - first] + o) % 2;
+    } else d.next[p.serve] = 1 - d.next[p.serve];
+    if (S.tb) { d.tbStart = d.next.slice(); d.tbFirst = S.serve; }
+  }
+  function teamHtml(side) {
+    var t = teamNames(side), idx = (S.phase !== 'fim' && S.serve === side) ? dServerIdx(side) : -1;
+    return t.map(function (n, i) { return '<b class="nm' + (i === idx ? ' srv' : '') + '">' + (i === idx ? '&#9679; ' : '') + esc(n) + '</b>'; }).join('<i>/</i>');
+  }
+  function undoPoint() {
+    var n = S.history.length; E.undo(S);
+    if (S.history.length < n && S.mode === 'D' && S.dh.length) S.d = JSON.parse(S.dh.pop());
+  }
   function who(side) { var n = S.names && S.names[side]; return n ? n : (side === 0 ? 'esquerda' : 'direita'); }
   function scoreStr(sets) { return sets.map(function (g) { return g[0] + '-' + g[1]; }).join('  '); }
 
@@ -548,9 +627,10 @@
     if (!S) return;
     var v = E.view(S);
     renderPanel(v);
-    var hasNames = !!(S.names && (S.names[0] || S.names[1]));
+    var D = S.mode === 'D', hasNames = D || !!(S.names && (S.names[0] || S.names[1]));
     $('gNames').hidden = !hasNames;
-    if (hasNames) { $('nameL').textContent = S.names[0] || ''; $('nameR').textContent = S.names[1] || ''; }
+    if (D) { var hl = teamHtml(0), hr = teamHtml(1); if (namesKey !== hl + hr) { namesKey = hl + hr; $('nameL').innerHTML = hl; $('nameR').innerHTML = hr; } }
+    else if (hasNames) { $('nameL').textContent = S.names[0] || ''; $('nameR').textContent = S.names[1] || ''; }
     var ph = S.phase, a = $('gAction'), showAct = ph === 'ocioso' || ph === 'aquecimento' || ph === 'intervalo';
     a.hidden = !showAct;
     a.textContent = ph === 'ocioso' ? (S.cfg.heat ? 'Iniciar aquecimento' : 'Iniciar partida') : ph === 'aquecimento' ? 'Iniciar partida' : 'Pular intervalo';
@@ -563,19 +643,20 @@
   function renderOverlays() {
     var ph = S.phase, want = (S.paused || menuOpen) && ph !== 'fim';
     var pov = $('gPaused');
-    var key = want ? 'p|' + S.paused + '|' + menuOpen + '|' + settings.voice + '|' + settings.mute : '';
+    var key = want ? 'p|' + S.paused + '|' + menuOpen + '|' + settings.voice + '|' + settings.mute + '|' + (S.mode === 'D' ? S.d.next.join() : '') : '';
     if (!want) { if (!pov.hidden) { pov.hidden = true; pov.innerHTML = ''; } overlayKey = ''; }
     else if (key !== overlayKey) { overlayKey = key; pov.hidden = false; buildPauseMenu(pov); }
     var end = $('gEnd');
     if (ph === 'fim') {
       var w = S.winner;
       end.hidden = false;
-      end.innerHTML = '<h2>Vitória ' + (S.names && S.names[w] ? 'de ' + esc(S.names[w]) : w === 0 ? 'da esquerda' : 'da direita') + '</h2><div class="score">' + scoreStr(S.sets) + '</div>' +
-        (S.names && (S.names[0] || S.names[1]) ? '<div class="muted">' + esc(S.names[0] || 'Esquerda') + ' x ' + esc(S.names[1] || 'Direita') + '</div>' : '') +
+      var hasN = S.mode === 'D' || (S.names && (S.names[0] || S.names[1]));
+      end.innerHTML = '<h2>Vitória ' + (sideName(w) ? 'de ' + esc(sideName(w)) : w === 0 ? 'da esquerda' : 'da direita') + '</h2><div class="score">' + scoreStr(S.sets) + '</div>' +
+        (hasN ? '<div class="muted">' + esc(sideName(0) || 'Esquerda') + ' x ' + esc(sideName(1) || 'Direita') + '</div>' : '') +
         '<div class="muted">Duração ' + E.mmss(S.clock) + '</div>' +
         '<div class="opts two" style="min-width:min(520px,90vw)"><button class="btn" id="eUndo">Desfazer último ponto</button><button class="btn primary" id="eNew">Nova partida</button></div><button class="btn ghost" id="eHome">Voltar ao início</button>';
-      $('eUndo').onclick = function () { E.undo(S); saved = false; removeLastHistory(); afterChange(true); };
-      $('eNew').onclick = function () { LS.del(K.cur); S = null; openWizard(1); };
+      $('eUndo').onclick = function () { undoPoint(); saved = false; removeLastHistory(); afterChange(true); };
+      $('eNew').onclick = function () { LS.del(K.cur); S = null; openWizard(0); };
       $('eHome').onclick = function () { LS.del(K.cur); S = null; renderHome(); };
     } else end.hidden = true;
   }
@@ -587,6 +668,10 @@
       '<div class="group" style="margin-top:16px"><span class="lbl">Voz</span><div class="opts two">' +
       optBtns('mvoice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/28' }, { v: 'M', t: 'Masculina', s: countHave('M') + '/28' }], v) + '</div></div>' +
       (countHave(v) < 28 ? '<div class="status warn">Faltam ' + (28 - countHave(v)) + ' faixas nesta voz. <div class="miss">' + trackList(missing(v)) + '</div></div>' : '') +
+      (S.mode === 'D' ? [0, 1].map(function (t) {
+        var tn = teamNames(t);
+        return '<div class="group"><span class="lbl">Próximo a sacar na dupla ' + (t === 0 ? 'da esquerda' : 'da direita') + '</span><div class="opts two">' + optBtns('dnext' + t, [{ v: 0, t: esc(tn[0]) }, { v: 1, t: esc(tn[1]) }], S.d.next[t]) + '</div></div>';
+      }).join('') : '') +
       '<div class="group"><span class="lbl">Volume</span><input id="mVol" type="range" min="0" max="100" value="' + Math.round(settings.volume * 100) + '"></div>' +
       '<div class="opts two" style="margin-bottom:12px"><button class="btn' + (settings.mute ? ' sel' : '') + '" id="mMute">' + (settings.mute ? 'Som desligado' : 'Desligar som') + '</button><button class="btn" id="mTest">Ouvir faixa 027</button></div>' +
       '<div class="stack"><button class="btn" id="mHome">Sair da partida (fica salva)</button><button class="btn" id="mReset">Zerar e configurar nova partida</button></div>' +
@@ -594,12 +679,17 @@
     pov.querySelectorAll('[data-name="mvoice"]').forEach(function (b) {
       b.onclick = function () { settings.voice = b.getAttribute('data-v'); saveSettings(); stopAudio(); preload(); renderGame(); };
     });
+    if (S.mode === 'D') [0, 1].forEach(function (t) {
+      pov.querySelectorAll('[data-name="dnext' + t + '"]').forEach(function (b) {
+        b.onclick = function () { var k = +b.getAttribute('data-v'); S.d.next[t] = k; if (S.tb) S.d.tbStart[t] = k; namesKey = ''; afterChange(true); };
+      });
+    });
     $('mVol').oninput = function (e) { settings.volume = e.target.value / 100; saveSettings(); if (gain) gain.gain.value = settings.mute ? 0 : settings.volume; };
     $('mMute').onclick = function () { settings.mute = !settings.mute; saveSettings(); if (gain) gain.gain.value = settings.mute ? 0 : settings.volume; renderGame(); };
     $('mTest').onclick = function () { ensureCtx(); playTracks([27]); };
     $('mResume').onclick = function () { if (S.paused) E.togglePause(S); menuOpen = false; lastTick = performance.now(); afterChange(true); };
     $('mHome').onclick = function () { leaveGame(); };
-    $('mReset').onclick = function () { confirmBox('Zerar a partida atual? O placar e o relógio serão apagados.', 'Zerar', function () { LS.del(K.cur); S = null; menuOpen = false; openWizard(1); }); };
+    $('mReset').onclick = function () { confirmBox('Zerar a partida atual? O placar e o relógio serão apagados.', 'Zerar', function () { LS.del(K.cur); S = null; menuOpen = false; openWizard(0); }); };
   }
 
   function tap(side) {
@@ -608,9 +698,13 @@
     if (now - lastTap[side] < 220) return;
     lastTap[side] = now;
     ensureCtx();
-    var before = S.history.length;
+    var before = S.history.length, D = S.mode === 'D';
+    var snap = D ? JSON.stringify(S.d) : null, prev = D ? { serve: S.serve, tb: S.tb, sum: setsSum(), tot: S.pts[0] + S.pts[1] } : null;
     E.point(S, side);
-    if (S.history.length !== before && navigator.vibrate) navigator.vibrate(20);
+    if (S.history.length !== before) {
+      if (D) { S.dh.push(snap); if (S.dh.length > 300) S.dh.shift(); dAfter(prev); }
+      if (navigator.vibrate) navigator.vibrate(20);
+    }
     afterChange(true);
   }
   $('sideL').addEventListener('click', function () { tap(0); });
@@ -621,11 +715,11 @@
     if (['jogo', 'aquecimento', 'intervalo'].indexOf(S.phase) >= 0) { E.togglePause(S); lastTick = performance.now(); } else menuOpen = true;
     afterChange(true);
   };
-  $('gUndo').onclick = function () { if (S && !S.paused && !menuOpen) { E.undo(S); afterChange(true); } };
+  $('gUndo').onclick = function () { if (S && !S.paused && !menuOpen) { undoPoint(); afterChange(true); } };
 
   function resume() {
     var cur = resumable(); if (!cur) return;
-    S = cur.s; S.cfg = E.normCfg(S.cfg); S.names = S.names || ['', '']; lastSay = S.sayId; saved = false; menuOpen = false;
+    S = cur.s; S.cfg = E.normCfg(S.cfg); S.names = S.names || ['', '']; S.mode = S.mode === 'D' ? 'D' : 'S'; if (S.mode === 'D') S.dh = S.dh || []; namesKey = ''; lastSay = S.sayId; saved = false; menuOpen = false;
     if (S.phase !== 'ocioso') { S.paused = true; S.msg = 'Partida retomada. Toque em Continuar.'; S.tracks = []; }
     preload(); enterGame();
   }
@@ -634,7 +728,7 @@
   /* ---------- histórico ---------- */
   function addHistory() {
     var h = LS.get(K.hist, []);
-    h.unshift({ id: Date.now(), ts: Date.now(), desc: E.describe(S.cfg), sets: S.sets, winner: S.winner, dur: Math.round(S.clock), cfg: S.cfg, names: S.names || ['', ''] });
+    h.unshift({ id: Date.now(), ts: Date.now(), desc: E.describe(S.cfg), sets: S.sets, winner: S.winner, dur: Math.round(S.clock), cfg: S.cfg, names: S.mode === 'D' ? [sideName(0), sideName(1)] : (S.names || ['', '']) });
     LS.set(K.hist, h.slice(0, 200));
   }
   function removeLastHistory() { var h = LS.get(K.hist, []); h.shift(); LS.set(K.hist, h); }
@@ -654,7 +748,7 @@
 
   /* ---------- botões da tela inicial ---------- */
   $('homeNew').onclick = function () { if (resumable()) { confirmBox('Existe uma partida em andamento. Começar uma nova apaga essa partida.', 'Nova partida', function () { LS.del(K.cur); openWizard(0); }); } else openWizard(0); };
-  $('homeVoices').onclick = function () { openWizard(0, true); };
+  $('homeVoices').onclick = function () { openWizard(1, true); };
   $('homeHistory').onclick = renderHistory;
   $('homeLogout').onclick = function () { LS.del(K.auth); LS.del(K.vk); show('login'); };
   $('loginBtn').onclick = doLogin;
@@ -681,5 +775,5 @@
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
 
-  window.__placar = { digits: function () { return panel ? panel.digits.map(function (d) { return d.ch; }).join('') : ''; }, clock: function () { return panel ? panel.clock.map(function (d) { return d.ch; }).join('') : ''; }, sync: function () { return sync; }, state: function () { return S; }, played: function () { return played; }, have: function () { return have; }, settings: function () { return settings; } };
+  window.__placar = { server: function () { return S && S.mode === 'D' ? [S.serve, dServerIdx(S.serve)] : null; }, digits: function () { return panel ? panel.digits.map(function (d) { return d.ch; }).join('') : ''; }, clock: function () { return panel ? panel.clock.map(function (d) { return d.ch; }).join('') : ''; }, sync: function () { return sync; }, state: function () { return S; }, played: function () { return played; }, have: function () { return have; }, settings: function () { return settings; } };
 })();

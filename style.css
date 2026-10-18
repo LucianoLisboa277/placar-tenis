@@ -79,7 +79,8 @@ input[type=range]{width:100%;height:40px}
 .cl{left:calc(var(--sal) + 8px)}.cr{right:calc(var(--sar) + 8px)}
 .names{position:absolute;left:0;right:0;top:0;height:calc(var(--u) * 19);font-weight:800;font-size:calc(var(--u) * 13);line-height:calc(var(--u) * 19)}
 .names span{position:absolute;top:0;width:45%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#nameL{left:.5%;color:#8fb0ff}#nameR{left:54%;color:var(--yellow)}
+#nameL{left:.5%;color:#8fb0ff}
+.names b.nm{font-weight:700;opacity:.72}.names b.srv{font-weight:900;opacity:1;border-bottom:calc(var(--u) * 1.4) solid currentColor}.names i{opacity:.5;margin:0 .3em;font-style:normal}#nameR{left:54%;color:var(--yellow)}
 .pw .action{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--u) * 146);width:calc(var(--u) * 68);height:calc(var(--u) * 26);min-height:44px;padding:4px 6px;font-size:max(13px,calc(var(--u) * 7));line-height:1.1;text-align:center}
 .pov{position:absolute;inset:0;background:rgba(5,8,12,.95);display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto;z-index:5}
 .pov .card{max-width:520px}
