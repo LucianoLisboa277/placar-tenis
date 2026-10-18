@@ -10,7 +10,8 @@
   var K = { auth: 'placar:auth', settings: 'placar:settings', cur: 'placar:cur', hist: 'placar:hist', vk: 'placar:vk', vver: 'placar:vver' };
   var VOICE_NAME = { F: 'Feminina', M: 'Masculina' };
 
-  var settings = Object.assign({ voice: 'F', volume: 0.9, mute: false, cfg: E.normCfg({}) }, LS.get(K.settings, {}));
+  var settings = Object.assign({ voice: 'F', volume: 0.9, mute: false, names: ['', ''], cfg: E.normCfg({}) }, LS.get(K.settings, {}));
+  if (!Array.isArray(settings.names) || settings.names.length !== 2) settings.names = ['', ''];
   settings.cfg = E.normCfg(settings.cfg);
   function saveSettings() { LS.set(K.settings, settings); }
 
@@ -255,7 +256,7 @@
   $('homeInstall').onclick = function () { if (installEvt) { installEvt.prompt(); installEvt = null; $('homeInstall').hidden = true; } };
 
   /* ---------- assistente de configuração ---------- */
-  var STEPS = ['Vozes', 'Formato da partida', 'Vantagem', 'Aquecimento', 'Intervalos', 'Primeiro saque', 'Resumo'];
+  var STEPS = ['Vozes', 'Formato da partida', 'Vantagem', 'Aquecimento', 'Intervalos', 'Primeiro saque', 'Jogadores', 'Resumo'];
   var step = 0, wizOnly = false, draft = null;
 
   function openWizard(startAt, only) { draft = E.normCfg(settings.cfg); step = startAt || 0; wizOnly = !!only; show('wizard'); renderStep(); }
@@ -353,6 +354,10 @@
         (c.brkSet ? stepper('brkSetSec', c.brkSetSec, 5, 900, 5, fmtSec) : '') + '</div>';
     } else if (step === 5) {
       h = '<div class="opts two">' + optBtns('firstServe', [{ v: 0, t: 'Esquerda', s: 'lado azul' }, { v: 1, t: 'Direita', s: 'lado amarelo' }], c.firstServe) + '</div>';
+    } else if (step === 6) {
+      h = '<p class="muted">Opcional. Os nomes aparecem acima do painel e no histórico.</p>' +
+        '<label class="field"><span>Jogador da esquerda</span><input id="nameInL" type="text" maxlength="20" autocomplete="off" value="' + esc(settings.names[0]) + '"></label>' +
+        '<label class="field"><span>Jogador da direita</span><input id="nameInR" type="text" maxlength="20" autocomplete="off" value="' + esc(settings.names[1]) + '"></label>';
     } else {
       h = '<div class="sum">' +
         row('Partida', c.sets === 1 ? '1 set' : c.sets === 2 ? 'Melhor de 3' : 'Melhor de 5') +
@@ -361,12 +366,17 @@
         row('Aquecimento', c.heat ? fmtSec(c.heatSec) : 'Sem') +
         row('Troca de lado', c.brkChange ? fmtSec(c.brkChangeSec) : 'Sem intervalo') +
         row('Entre sets', c.brkSet ? fmtSec(c.brkSetSec) : 'Sem intervalo') +
-        row('Primeiro saque', c.firstServe ? 'Direita (amarelo)' : 'Esquerda (azul)') +
+        row('Primeiro saque', c.firstServe ? 'Direita' : 'Esquerda') +
+        (settings.names[0] || settings.names[1] ? row('Jogadores', esc(settings.names[0] || 'Esquerda') + ' x ' + esc(settings.names[1] || 'Direita')) : '') +
         row('Voz', VOICE_NAME[settings.voice] + ', ' + countHave(settings.voice) + ' de 28 faixas') + '</div>';
     }
     var y = body.parentNode.scrollTop;
     body.innerHTML = h;
     if (step === 0) bindVoices(body);
+    if (step === 6) {
+      $('nameInL').oninput = function (e) { settings.names[0] = e.target.value; saveSettings(); };
+      $('nameInR').oninput = function (e) { settings.names[1] = e.target.value; saveSettings(); };
+    }
     body.querySelectorAll('[data-name]').forEach(function (b) {
       if (b.getAttribute('data-name') === 'voice') return;
       b.onclick = function () {
@@ -384,6 +394,7 @@
     });
     if (keepScroll) body.parentNode.scrollTop = y;
   }
+  function esc(t) { return String(t || '').replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function row(a, b) { return '<div><span>' + a + '</span><b>' + b + '</b></div>'; }
 
   $('wizNext').onclick = function () {
@@ -395,13 +406,89 @@
   $('wizBack').onclick = function () { if (step > 0) { settings.cfg = E.normCfg(draft); step--; renderStep(); } };
   $('wizHome').onclick = function () { settings.cfg = E.normCfg(draft); saveSettings(); renderHome(); };
 
+  /* ---------- painel (mesma geometria do placar físico) ---------- */
+  var NS = 'http://www.w3.org/2000/svg';
+  var SEGMAP = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', 'A': 'abcefg', 'D': 'bcdeg' };
+  var panel = null;
+  function svgEl(n, a) { var e = document.createElementNS(NS, n); for (var k in a) e.setAttribute(k, a[k]); return e; }
+  function hexSeg(horiz, c, a1, a2, t) {   /* segmento em forma de hexágono alongado */
+    var h = t / 2, pts = horiz
+      ? [[a1, c], [a1 + h, c - h], [a2 - h, c - h], [a2, c], [a2 - h, c + h], [a1 + h, c + h]]
+      : [[c, a1], [c + h, a1 + h], [c + h, a2 - h], [c, a2], [c - h, a2 - h], [c - h, a1 + h]];
+    return pts.map(function (p) { return p[0].toFixed(2) + ',' + p[1].toFixed(2); }).join(' ');
+  }
+  function thick(str, f) {   /* engrossa o segmento em 15%, só na espessura, mantendo o comprimento */
+    var p = str.split(' ').map(function (t) { var a = t.split(','); return [+a[0], +a[1]]; });
+    var xs = p.map(function (q) { return q[0]; }), ys = p.map(function (q) { return q[1]; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, horiz = (x1 - x0) > (y1 - y0);
+    return p.map(function (q) { return horiz ? q[0].toFixed(2) + ',' + (cy + (q[1] - cy) * f).toFixed(2) : (cx + (q[0] - cx) * f).toFixed(2) + ',' + q[1].toFixed(2); }).join(' ');
+  }
+  function buildPanel() {
+    var host = $('pw'), P = window.PANEL, old = host.querySelector('svg.panel');
+    if (old) host.removeChild(old);
+    var svg = svgEl('svg', { viewBox: '14 12 322 178', 'class': 'panel', 'aria-hidden': 'true' });
+    var digits = [], i;
+    for (i = 0; i < 10; i++) digits.push({ ch: null, segs: {} });
+    P.segs.forEach(function (sg) { var e = svgEl('polygon', { points: sg[0] <= 3 ? thick(sg[2], 1.15) : sg[2], 'class': 'seg' }); svg.appendChild(e); digits[sg[0]].segs[sg[1]] = e; });
+    var traps = P.traps.map(function (pt) { var e = svgEl('polygon', { points: pt, 'class': 'trap' }); svg.appendChild(e); return e; });
+    /* relógio mm:ss, 4 dígitos e dois pontos, no retângulo do relógio do painel */
+    var clock = [], x = 151.5, y = 49.9, w = 10, hh = 19.4, t = 2.1, g = 0.5;
+    function mk(l, horiz, c, a1, a2) { var e = svgEl('polygon', { points: hexSeg(horiz, c, a1, a2, t), 'class': 'ck' }); svg.appendChild(e); return e; }
+    [0, 1, 2, 3].forEach(function (k) {
+      var x0 = [151.5, 163.5, 177, 188.5][k], segs = {}, mid = y + hh / 2;
+      segs.a = mk('a', true, y + t / 2, x0 + t / 2 + g, x0 + w - t / 2 - g);
+      segs.g = mk('g', true, mid, x0 + t / 2 + g, x0 + w - t / 2 - g);
+      segs.d = mk('d', true, y + hh - t / 2, x0 + t / 2 + g, x0 + w - t / 2 - g);
+      segs.f = mk('f', false, x0 + t / 2, y + t / 2 + g, mid - g);
+      segs.b = mk('b', false, x0 + w - t / 2, y + t / 2 + g, mid - g);
+      segs.e = mk('e', false, x0 + t / 2, mid + g, y + hh - t / 2 - g);
+      segs.c = mk('c', false, x0 + w - t / 2, mid + g, y + hh - t / 2 - g);
+      clock.push({ ch: null, segs: segs });
+    });
+    var dots = [y + hh * 0.32, y + hh * 0.68].map(function (cy) { var e = svgEl('circle', { cx: 175, cy: cy, r: 1.2, 'class': 'ck on' }); svg.appendChild(e); return e; });
+    host.insertBefore(svg, host.firstChild);
+    panel = { svg: svg, digits: digits, traps: traps, clock: clock, dots: dots };
+  }
+  function setDigit(d, ch) {
+    if (d.ch === ch) return; d.ch = ch;
+    var on = SEGMAP[ch] || '';
+    for (var l in d.segs) d.segs[l].classList.toggle('on', on.indexOf(l) >= 0);
+  }
+  function two(t) { t = String(t); return t.length < 2 ? '0' + t : t; }
+  function renderPanel(v) {
+    if (!panel) buildPanel();
+    var g0 = two(v.game[0]), g1 = two(v.game[1]), i;
+    setDigit(panel.digits[0], g0.charAt(0)); setDigit(panel.digits[1], g0.charAt(1));
+    setDigit(panel.digits[2], g1.charAt(0)); setDigit(panel.digits[3], g1.charAt(1));
+    for (i = 0; i < 3; i++) {
+      var c = v.cols[i];
+      setDigit(panel.digits[4 + i], c ? String(c.g[0]) : '0');
+      setDigit(panel.digits[7 + i], c ? String(c.g[1]) : '0');
+    }
+    var ck = v.clock.replace(':', '');
+    for (i = 0; i < 4; i++) setDigit(panel.clock[i], ck.charAt(i));
+    var run = v.phase !== 'fim';
+    panel.traps[0].classList.toggle('on', run && v.serve === 0);
+    panel.traps[1].classList.toggle('on', run && v.serve === 1);
+    panel.svg.classList.toggle('amber', v.phase === 'aquecimento' || v.phase === 'intervalo');
+  }
+  function fitPanel() {
+    var wrap = $('panelWrap'), pw = $('pw'); if (!wrap) return;
+    var W = wrap.clientWidth, H = wrap.clientHeight; if (!W || !H) return;
+    var w = Math.min(W, H * 322 / 178), h = w * 178 / 322;
+    pw.style.width = w + 'px'; pw.style.height = h + 'px'; pw.style.setProperty('--u', (w / 322) + 'px');
+  }
+  window.addEventListener('resize', fitPanel);
+
   /* ---------- jogo ---------- */
-  var S = null, lastSay = 0, lastTick = 0, ticker = null, lastSave = 0, saved = false, lastTap = [0, 0];
+  var S = null, lastSay = 0, lastTick = 0, ticker = null, lastSave = 0, saved = false, lastTap = [0, 0], menuOpen = false, overlayKey = '';
   var wake = null;
 
   function startMatch() {
     ensureCtx(); preload();
-    S = E.reset(settings.cfg); lastSay = S.sayId; saved = false;
+    S = E.reset(settings.cfg); S.names = settings.names.map(function (n) { return String(n || '').trim().slice(0, 20); });
+    lastSay = S.sayId; saved = false; menuOpen = false;
     persist(true);
     enterGame();
   }
@@ -417,9 +504,12 @@
     requestWake();
     lastTick = performance.now();
     if (!ticker) ticker = setInterval(onTick, 250);
-    renderGame();
+    if (!panel) buildPanel();
+    overlayKey = '';
+    fitPanel(); renderGame();
+    setTimeout(fitPanel, 150);
   }
-  function leaveGame() { persist(true); show(resumable() ? 'home' : 'home'); renderHome(); }
+  function leaveGame() { persist(true); menuOpen = false; renderHome(); }
 
   function requestFullscreenLandscape() {
     try {
@@ -451,42 +541,69 @@
     renderGame();
   }
 
+  function who(side) { var n = S.names && S.names[side]; return n ? n : (side === 0 ? 'esquerda' : 'direita'); }
+  function scoreStr(sets) { return sets.map(function (g) { return g[0] + '-' + g[1]; }).join('  '); }
+
   function renderGame() {
     if (!S) return;
     var v = E.view(S);
-    $('gClock').textContent = v.clock;
-    $('gKind').textContent = v.paused ? v.clockKind + ' (pausado)' : v.clockKind;
-    $('gMsg').textContent = S.msg || '';
-    var pL = $('ptsL'), pR = $('ptsR');
-    pL.textContent = v.game[0]; pR.textContent = v.game[1];
-    pL.classList.toggle('ad', v.game[0] === 'AD'); pR.classList.toggle('ad', v.game[1] === 'AD');
-    $('sideL').classList.toggle('serving', v.serve === 0 && S.phase !== 'fim');
-    $('sideR').classList.toggle('serving', v.serve === 1 && S.phase !== 'fim');
-    ['L', 'R'].forEach(function (k, i) {
-      $('sets' + k).innerHTML = '<span class="sw">Sets ' + v.sets[i] + '</span>' + v.cols.map(function (c) { return '<span class="chip' + (c.current ? ' cur' : '') + '">' + c.g[i] + '</span>'; }).join('');
-    });
-    var a = $('gAction'), ph = S.phase;
-    a.hidden = ph === 'jogo' || ph === 'fim';
+    renderPanel(v);
+    var hasNames = !!(S.names && (S.names[0] || S.names[1]));
+    $('gNames').hidden = !hasNames;
+    if (hasNames) { $('nameL').textContent = S.names[0] || ''; $('nameR').textContent = S.names[1] || ''; }
+    var ph = S.phase, a = $('gAction'), showAct = ph === 'ocioso' || ph === 'aquecimento' || ph === 'intervalo';
+    a.hidden = !showAct;
     a.textContent = ph === 'ocioso' ? (S.cfg.heat ? 'Iniciar aquecimento' : 'Iniciar partida') : ph === 'aquecimento' ? 'Iniciar partida' : 'Pular intervalo';
-    $('gPause').textContent = S.paused ? 'Continuar' : 'Pausa';
-    $('gPause').disabled = ph === 'ocioso' || ph === 'fim';
     $('gUndo').disabled = !S.history.length || ph === 'ocioso';
-    $('gPaused').hidden = !(S.paused && ph !== 'fim');
+    $('gPause').disabled = ph === 'fim';
+    fitPanel();
+    renderOverlays();
+  }
+
+  function renderOverlays() {
+    var ph = S.phase, want = (S.paused || menuOpen) && ph !== 'fim';
+    var pov = $('gPaused');
+    var key = want ? 'p|' + S.paused + '|' + menuOpen + '|' + settings.voice + '|' + settings.mute : '';
+    if (!want) { if (!pov.hidden) { pov.hidden = true; pov.innerHTML = ''; } overlayKey = ''; }
+    else if (key !== overlayKey) { overlayKey = key; pov.hidden = false; buildPauseMenu(pov); }
     var end = $('gEnd');
     if (ph === 'fim') {
       var w = S.winner;
       end.hidden = false;
-      end.innerHTML = '<h2>Vitória ' + (w === 0 ? 'da esquerda (azul)' : 'da direita (amarelo)') + '</h2><div class="score">' + scoreStr(S.sets, 0) + '</div><div class="muted">Duração ' + E.mmss(S.clock) + '</div>' +
+      end.innerHTML = '<h2>Vitória ' + (S.names && S.names[w] ? 'de ' + esc(S.names[w]) : w === 0 ? 'da esquerda' : 'da direita') + '</h2><div class="score">' + scoreStr(S.sets) + '</div>' +
+        (S.names && (S.names[0] || S.names[1]) ? '<div class="muted">' + esc(S.names[0] || 'Esquerda') + ' x ' + esc(S.names[1] || 'Direita') + '</div>' : '') +
+        '<div class="muted">Duração ' + E.mmss(S.clock) + '</div>' +
         '<div class="opts two" style="min-width:min(520px,90vw)"><button class="btn" id="eUndo">Desfazer último ponto</button><button class="btn primary" id="eNew">Nova partida</button></div><button class="btn ghost" id="eHome">Voltar ao início</button>';
       $('eUndo').onclick = function () { E.undo(S); saved = false; removeLastHistory(); afterChange(true); };
-      $('eNew').onclick = function () { LS.del(K.cur); openWizard(1); };
-      $('eHome').onclick = function () { LS.del(K.cur); renderHome(); };
+      $('eNew').onclick = function () { LS.del(K.cur); S = null; openWizard(1); };
+      $('eHome').onclick = function () { LS.del(K.cur); S = null; renderHome(); };
     } else end.hidden = true;
   }
-  function scoreStr(sets) { return sets.map(function (g) { return g[0] + '-' + g[1]; }).join('  '); }
+
+  function buildPauseMenu(pov) {
+    var v = settings.voice, paused = S.paused;
+    pov.innerHTML = '<div class="card"><h2>' + (paused ? 'Pausado' : 'Menu') + '</h2>' +
+      '<div class="stack" style="margin-top:14px"><button class="btn primary big" id="mResume">' + (paused ? 'Continuar' : 'Fechar') + '</button></div>' +
+      '<div class="group" style="margin-top:16px"><span class="lbl">Voz</span><div class="opts two">' +
+      optBtns('mvoice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/28' }, { v: 'M', t: 'Masculina', s: countHave('M') + '/28' }], v) + '</div></div>' +
+      (countHave(v) < 28 ? '<div class="status warn">Faltam ' + (28 - countHave(v)) + ' faixas nesta voz. <div class="miss">' + trackList(missing(v)) + '</div></div>' : '') +
+      '<div class="group"><span class="lbl">Volume</span><input id="mVol" type="range" min="0" max="100" value="' + Math.round(settings.volume * 100) + '"></div>' +
+      '<div class="opts two" style="margin-bottom:12px"><button class="btn' + (settings.mute ? ' sel' : '') + '" id="mMute">' + (settings.mute ? 'Som desligado' : 'Desligar som') + '</button><button class="btn" id="mTest">Ouvir faixa 027</button></div>' +
+      '<div class="stack"><button class="btn" id="mHome">Sair da partida (fica salva)</button><button class="btn" id="mReset">Zerar e configurar nova partida</button></div>' +
+      ('wakeLock' in navigator ? '' : '<p class="muted">Este navegador não mantém a tela acesa. Ajuste o tempo de tela do aparelho.</p>') + '</div>';
+    pov.querySelectorAll('[data-name="mvoice"]').forEach(function (b) {
+      b.onclick = function () { settings.voice = b.getAttribute('data-v'); saveSettings(); stopAudio(); preload(); renderGame(); };
+    });
+    $('mVol').oninput = function (e) { settings.volume = e.target.value / 100; saveSettings(); if (gain) gain.gain.value = settings.mute ? 0 : settings.volume; };
+    $('mMute').onclick = function () { settings.mute = !settings.mute; saveSettings(); if (gain) gain.gain.value = settings.mute ? 0 : settings.volume; renderGame(); };
+    $('mTest').onclick = function () { ensureCtx(); playTracks([27]); };
+    $('mResume').onclick = function () { if (S.paused) E.togglePause(S); menuOpen = false; lastTick = performance.now(); afterChange(true); };
+    $('mHome').onclick = function () { leaveGame(); };
+    $('mReset').onclick = function () { confirmBox('Zerar a partida atual? O placar e o relógio serão apagados.', 'Zerar', function () { LS.del(K.cur); S = null; menuOpen = false; openWizard(1); }); };
+  }
 
   function tap(side) {
-    if (!S || current !== 'game') return;
+    if (!S || current !== 'game' || S.paused || menuOpen) return;
     var now = Date.now();
     if (now - lastTap[side] < 220) return;
     lastTap[side] = now;
@@ -499,34 +616,16 @@
   $('sideL').addEventListener('click', function () { tap(0); });
   $('sideR').addEventListener('click', function () { tap(1); });
   $('gAction').onclick = function () { ensureCtx(); E.press(S); afterChange(true); };
-  $('gPause').onclick = function () { E.togglePause(S); lastTick = performance.now(); afterChange(true); };
-  $('gUndo').onclick = function () { E.undo(S); afterChange(true); };
-
-  $('gMenu').onclick = function () {
-    var v = settings.voice;
-    var m = openModal('<h2>Menu</h2>' +
-      '<div class="group" style="margin-top:14px"><span class="lbl">Voz</span><div class="opts two">' +
-      optBtns('mvoice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/28' }, { v: 'M', t: 'Masculina', s: countHave('M') + '/28' }], v) + '</div></div>' +
-      (countHave(v) < 28 ? '<div class="status warn">Faltam ' + (28 - countHave(v)) + ' faixas nesta voz. <div class="miss">' + trackList(missing(v)) + '</div></div>' : '') +
-      '<div class="group"><span class="lbl">Volume</span><input id="mVol" type="range" min="0" max="100" value="' + Math.round(settings.volume * 100) + '"></div>' +
-      '<div class="opts two" style="margin-bottom:10px"><button class="btn' + (settings.mute ? ' sel' : '') + '" id="mMute">' + (settings.mute ? 'Som desligado' : 'Desligar som') + '</button><button class="btn" id="mTest">Ouvir faixa 027</button></div>' +
-      '<div class="stack"><button class="btn" id="mHome">Sair da partida (fica salva)</button><button class="btn" id="mReset">Zerar e configurar nova partida</button><button class="btn ghost" id="mClose">Fechar</button></div>' +
-      '<p class="muted" id="mWake"></p>');
-    $('mWake').textContent = 'wakeLock' in navigator ? '' : 'Este navegador não mantém a tela acesa. Ajuste o tempo de tela do aparelho.';
-    m.querySelectorAll('[data-name="mvoice"]').forEach(function (b) {
-      b.onclick = function () { settings.voice = b.getAttribute('data-v'); saveSettings(); stopAudio(); preload(); $('gMenu').onclick(); };
-    });
-    $('mVol').oninput = function (e) { settings.volume = e.target.value / 100; saveSettings(); if (gain) gain.gain.value = settings.mute ? 0 : settings.volume; };
-    $('mMute').onclick = function () { settings.mute = !settings.mute; saveSettings(); if (gain) gain.gain.value = settings.mute ? 0 : settings.volume; $('gMenu').onclick(); };
-    $('mTest').onclick = function () { ensureCtx(); playTracks([27]); };
-    $('mClose').onclick = closeModal;
-    $('mHome').onclick = function () { closeModal(); leaveGame(); };
-    $('mReset').onclick = function () { confirmBox('Zerar a partida atual? O placar e o relógio serão apagados.', 'Zerar', function () { LS.del(K.cur); S = null; openWizard(1); }); };
+  $('gPause').onclick = function () {
+    if (!S) return;
+    if (['jogo', 'aquecimento', 'intervalo'].indexOf(S.phase) >= 0) { E.togglePause(S); lastTick = performance.now(); } else menuOpen = true;
+    afterChange(true);
   };
+  $('gUndo').onclick = function () { if (S && !S.paused && !menuOpen) { E.undo(S); afterChange(true); } };
 
   function resume() {
     var cur = resumable(); if (!cur) return;
-    S = cur.s; S.cfg = E.normCfg(S.cfg); lastSay = S.sayId; saved = false;
+    S = cur.s; S.cfg = E.normCfg(S.cfg); S.names = S.names || ['', '']; lastSay = S.sayId; saved = false; menuOpen = false;
     if (S.phase !== 'ocioso') { S.paused = true; S.msg = 'Partida retomada. Toque em Continuar.'; S.tracks = []; }
     preload(); enterGame();
   }
@@ -535,7 +634,7 @@
   /* ---------- histórico ---------- */
   function addHistory() {
     var h = LS.get(K.hist, []);
-    h.unshift({ id: Date.now(), ts: Date.now(), desc: E.describe(S.cfg), sets: S.sets, winner: S.winner, dur: Math.round(S.clock), cfg: S.cfg });
+    h.unshift({ id: Date.now(), ts: Date.now(), desc: E.describe(S.cfg), sets: S.sets, winner: S.winner, dur: Math.round(S.clock), cfg: S.cfg, names: S.names || ['', ''] });
     LS.set(K.hist, h.slice(0, 200));
   }
   function removeLastHistory() { var h = LS.get(K.hist, []); h.shift(); LS.set(K.hist, h); }
@@ -543,7 +642,10 @@
     var h = LS.get(K.hist, []), el = $('histList');
     el.innerHTML = h.length ? h.map(function (m) {
       var d = new Date(m.ts), ds = d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-      return '<div class="hist-item"><div class="top"><span>' + ds + '</span><span>' + E.mmss(m.dur) + '</span></div><div class="score">' + scoreStr(m.sets) + '</div><div><span class="tag ' + (m.winner === 0 ? 'blue' : 'yellow') + '">Vitória ' + (m.winner === 0 ? 'azul' : 'amarelo') + '</span> <span class="muted">' + m.desc + '</span></div></div>';
+      var nm = m.names || ['', ''], wn = nm[m.winner] ? 'de ' + esc(nm[m.winner]) : (m.winner === 0 ? 'da esquerda' : 'da direita');
+      return '<div class="hist-item"><div class="top"><span>' + ds + '</span><span>' + E.mmss(m.dur) + '</span></div>' +
+        (nm[0] || nm[1] ? '<div>' + esc(nm[0] || 'Esquerda') + ' x ' + esc(nm[1] || 'Direita') + '</div>' : '') +
+        '<div class="score">' + scoreStr(m.sets) + '</div><div><span class="tag ' + (m.winner === 0 ? 'blue' : 'yellow') + '">Vitória ' + wn + '</span> <span class="muted">' + m.desc + '</span></div></div>';
     }).join('') : '<p class="muted">Nenhuma partida terminada ainda.</p>';
     show('history');
   }
@@ -559,7 +661,7 @@
   $('loginPass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 
   /* ---------- orientação ---------- */
-  function updateRotate() { $('rotate').hidden = !(current === 'game' && window.innerHeight > window.innerWidth); }
+  function updateRotate() { $('rotate').hidden = !(current === 'game' && window.innerHeight > window.innerWidth); setTimeout(fitPanel, 50); }
   window.addEventListener('resize', updateRotate);
   window.addEventListener('orientationchange', updateRotate);
   window.addEventListener('pagehide', function () { persist(true); });
@@ -579,5 +681,5 @@
     navigator.serviceWorker.register('sw.js').catch(function () {});
   }
 
-  window.__placar = { sync: function () { return sync; }, state: function () { return S; }, played: function () { return played; }, have: function () { return have; }, settings: function () { return settings; } };
+  window.__placar = { digits: function () { return panel ? panel.digits.map(function (d) { return d.ch; }).join('') : ''; }, clock: function () { return panel ? panel.clock.map(function (d) { return d.ch; }).join('') : ''; }, sync: function () { return sync; }, state: function () { return S; }, played: function () { return played; }, have: function () { return have; }, settings: function () { return settings; } };
 })();

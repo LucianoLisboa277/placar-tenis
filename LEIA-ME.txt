@@ -1,0 +1,16 @@
+PLACAR DE TÊNIS (app web)
+
+PUBLICAR NO GITHUB PAGES
+1. No repositório placar-tenis, clique em "uploading an existing file".
+2. Arraste TUDO o que está dentro desta pasta (arquivos soltos e as pastas icons, vendor e voices). Não arraste a pasta de fora nem o ZIP. São 71 arquivos. Se o GitHub recusar por quantidade, envie a pasta voices em um segundo envio.
+3. Clique em "Commit changes".
+4. Settings > Pages > Branch: main, pasta "/ (root)" > Save.
+5. Espere 1 a 2 minutos. Link: https://lucianolisboa277.github.io/placar-tenis/
+
+ATUALIZAR O APP
+Envie os arquivos novos pelo mesmo caminho. Os arquivos com o mesmo nome são substituídos.
+
+NO CELULAR OU TABLET (Chrome, Android)
+1. Abra o link e entre com login e senha.
+2. As vozes feminina e masculina baixam sozinhas (cerca de 1,3 MB, uma vez por aparelho).
+3. Menu do Chrome (três pontos) > Instalar app ou Adicionar à tela inicial.

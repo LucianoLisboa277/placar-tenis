@@ -1,8 +1,8 @@
 /* Cache do app para funcionar offline depois da primeira abertura.
    Mude VERSION a cada publicação para os aparelhos pegarem os arquivos novos. */
-var VERSION = 'placar-v3';
+var VERSION = 'placar-v6';
 var FILES = [
-  './', 'index.html', 'style.css', 'app.js', 'engine.js', 'auth-config.js', 'manifest.webmanifest',
+  './', 'index.html', 'style.css', 'app.js', 'engine.js', 'panel-geom.js', 'auth-config.js', 'manifest.webmanifest',
   'demo3d.html', 'vendor/three.min.js', 'vendor/OrbitControls.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/maskable-512.png'
 ];

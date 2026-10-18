@@ -58,18 +58,17 @@
   </section>
 
   <section id="game" class="screen" hidden>
-    <header class="gbar">
-      <button id="gMenu" class="btn" aria-label="Menu">Menu</button>
-      <div class="gclock"><div id="gClock" class="clock">00:00</div><div id="gKind" class="kind">partida</div></div>
-      <button id="gAction" class="btn accent action">Iniciar</button>
-      <div class="gright"><button id="gUndo" class="btn">Desfazer</button><button id="gPause" class="btn">Pausa</button></div>
-    </header>
-    <div id="gMsg" class="gmsg" aria-live="polite"></div>
-    <div class="sides">
-      <button id="sideL" class="side blue" aria-label="Ponto para a esquerda (azul)"><span class="serve" id="srvL">Saque</span><span class="pts" id="ptsL">0</span><span class="setsrow" id="setsL"></span></button>
-      <button id="sideR" class="side yellow" aria-label="Ponto para a direita (amarelo)"><span class="serve" id="srvR">Saque</span><span class="pts" id="ptsR">0</span><span class="setsrow" id="setsR"></span></button>
+    <div class="panelwrap" id="panelWrap">
+      <div class="pw" id="pw">
+        <div id="gNames" class="names" hidden><span id="nameL"></span><span id="nameR"></span></div>
+        <button id="gAction" class="btn accent action">Iniciar</button>
+      </div>
     </div>
-    <div id="gPaused" class="paused" hidden>PAUSADO</div>
+    <button id="gPause" class="cbtn cl" aria-label="Pausa e menu"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1"/><rect x="14" y="4" width="5" height="16" rx="1"/></svg></button>
+    <button id="gUndo" class="cbtn cr" aria-label="Desfazer o último ponto"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="3" height="16" rx="1"/><path d="M20 4.5v15L8.5 12z"/></svg></button>
+    <button id="sideL" class="zone zl" aria-label="Ponto para a esquerda">+</button>
+    <button id="sideR" class="zone zr" aria-label="Ponto para a direita">+</button>
+    <div id="gPaused" class="pov" hidden></div>
     <div id="gEnd" class="endov" hidden></div>
   </section>
 
@@ -77,6 +76,7 @@
 <div id="modal" class="modal" hidden></div>
 <div id="rotate" class="rotate" hidden><div>Gire o aparelho para a horizontal</div></div>
 <script src="auth-config.js"></script>
+<script src="panel-geom.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>
 </body>
