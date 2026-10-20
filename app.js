@@ -8,6 +8,7 @@
     del: function (k) { try { localStorage.removeItem(k); } catch (e) {} }
   };
   var K = { auth: 'placar:auth', settings: 'placar:settings', cur: 'placar:cur', hist: 'placar:hist', vk: 'placar:vk', vver: 'placar:vver' };
+  var TOTAL = 38;   /* faixas por voz: 001 a 028 (placar) e 029 a 038 (chamadas do árbitro) */
   var VOICE_NAME = { F: 'Feminina', M: 'Masculina' };
 
   var settings = Object.assign({ voice: 'F', volume: 0.9, mute: false, names: ['', ''], mode: 'S', dnames: ['', '', '', ''], dfirst: [0, 0], cfg: E.normCfg({}) }, LS.get(K.settings, {}));
@@ -107,8 +108,8 @@
       keys.forEach(function (k) { var m = /^([FM]):(\d+)$/.exec(k); if (m) have[m[1]][+m[2]] = true; });
     }).catch(function () {});
   }
-  function missing(v) { var out = []; for (var n = 1; n <= 28; n++) if (!have[v][n]) out.push(n); return out; }
-  function countHave(v) { return 28 - missing(v).length; }
+  function missing(v) { var out = []; for (var n = 1; n <= TOTAL; n++) if (!have[v][n]) out.push(n); return out; }
+  function countHave(v) { return TOTAL - missing(v).length; }
 
 
   /* ---------- vozes embutidas no app (criptografadas), baixadas depois do login ---------- */
@@ -128,7 +129,7 @@
     var a = window.PLACAR_ACCESS || {}, vk = LS.get(K.vk, null);
     if (!vk || !a.voicesVersion || sync.running) return Promise.resolve();
     var redo = !!force || LS.get(K.vver, '') !== a.voicesVersion, jobs = [];
-    ['F', 'M'].forEach(function (v) { for (var n = 1; n <= 28; n++) if (redo || !have[v][n]) jobs.push([v, n]); });
+    ['F', 'M'].forEach(function (v) { for (var n = 1; n <= TOTAL; n++) if (redo || !have[v][n]) jobs.push([v, n]); });
     if (!jobs.length) { LS.set(K.vver, a.voicesVersion); return Promise.resolve(); }
     sync = { running: true, done: 0, total: jobs.length, fail: 0 };
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
@@ -207,10 +208,10 @@
   }
   function preload() {
     var v = settings.voice;
-    for (var n = 1; n <= 28; n++) if (have[v][n]) getBuffer(v, n);
+    for (var n = 1; n <= TOTAL; n++) if (have[v][n]) getBuffer(v, n);
   }
 
-  /* importar arquivos de voz: o número da faixa vem do começo do nome (001.mp3 a 028.mp3) */
+  /* importar arquivos de voz: o número da faixa vem do começo do nome (001.mp3 a 038.mp3) */
   function importFiles(v, files) {
     files = Array.prototype.slice.call(files || []);
     var done = 0, ignored = [], bad = [], ok = 0;
@@ -221,7 +222,7 @@
       chain = chain.then(function () {
         var m = /^(\d{1,3})(?!\d)/.exec(f.name.replace(/^.*[\\/]/, ''));
         var n = m ? parseInt(m[1], 10) : 0;
-        if (n < 1 || n > 28) { ignored.push(f.name); return; }
+        if (n < 1 || n > TOTAL) { ignored.push(f.name); return; }
         return f.arrayBuffer().then(function (ab) {
           return decode(ab.slice(0)).then(function (b) {
             return idbPut(v + ':' + n, ab).then(function () { bufCache[v + ':' + n] = b; ok++; });
@@ -250,7 +251,7 @@
   }
   function renderHome() {
     var f = countHave('F'), m = countHave('M');
-    $('homeVoice').textContent = syncText() || ('Vozes neste aparelho: feminina ' + f + '/28, masculina ' + m + '/28.');
+    $('homeVoice').textContent = syncText() || ('Vozes neste aparelho: feminina ' + f + '/' + TOTAL + ', masculina ' + m + '/' + TOTAL + '.');
     $('homeResume').hidden = !resumable();
     show('home');
   }
@@ -276,12 +277,12 @@
 
   function voicesHtml() {
     var v = settings.voice, miss = missing(v);
-    var st = countHave(v) === 28
-      ? '<div class="status">Voz ' + VOICE_NAME[v].toLowerCase() + ': 28 de 28 faixas carregadas.</div>'
-      : '<div class="status warn">Voz ' + VOICE_NAME[v].toLowerCase() + ': ' + countHave(v) + ' de 28 faixas. Faixas que faltam ficam em silêncio.' +
+    var st = countHave(v) === TOTAL
+      ? '<div class="status">Voz ' + VOICE_NAME[v].toLowerCase() + ': ' + TOTAL + ' de ' + TOTAL + ' faixas carregadas.</div>'
+      : '<div class="status warn">Voz ' + VOICE_NAME[v].toLowerCase() + ': ' + countHave(v) + ' de ' + TOTAL + ' faixas. Faixas que faltam ficam em silêncio.' +
         '<div class="miss">Faltam: ' + trackList(miss) + '</div></div>';
     return '<div class="group"><span class="lbl">Voz usada na partida</span><div class="opts two">' +
-      optBtns('voice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/28' }, { v: 'M', t: 'Masculina', s: countHave('M') + '/28' }], v) + '</div></div>' +
+      optBtns('voice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/' + TOTAL }, { v: 'M', t: 'Masculina', s: countHave('M') + '/' + TOTAL }], v) + '</div></div>' +
       st +
       '<div class="status" id="syncLine">' + (syncText() || 'Vozes em dia neste aparelho.') + '</div>' +
       (LS.get(K.vk, null) ? '<button class="btn" id="syncAgain" style="width:100%;margin-bottom:12px">Baixar vozes de novo</button>' :
@@ -306,7 +307,7 @@
         e.target.value = '';
         refreshStep();
         var msg = r.ok + ' faixas salvas.';
-        if (r.ignored.length) msg += ' Ignorados (nome sem número de 001 a 028): ' + r.ignored.join(', ') + '.';
+        if (r.ignored.length) msg += ' Ignorados (nome sem número de 001 a 038): ' + r.ignored.join(', ') + '.';
         if (r.bad.length) msg += ' Não foi possível ler: ' + r.bad.join(', ') + '.';
         var el = $('impResult'); if (el) el.textContent = msg;
         var pg = $('impProgress'); if (pg) pg.textContent = '';
@@ -388,7 +389,7 @@
         (settings.mode === 'D' ? row('Tipo', 'Dupla') + row('Duplas', esc((settings.dnames[0] || 'Jogador 1') + ' / ' + (settings.dnames[1] || 'Jogador 2')) + ' x ' + esc((settings.dnames[2] || 'Jogador 3') + ' / ' + (settings.dnames[3] || 'Jogador 4'))) +
           row('Saque inicial', esc(settings.dnames[settings.dfirst[0]] || ('Jogador ' + (settings.dfirst[0] + 1))) + ' e ' + esc(settings.dnames[2 + settings.dfirst[1]] || ('Jogador ' + (3 + settings.dfirst[1])))) :
           (settings.names[0] || settings.names[1] ? row('Jogadores', esc(settings.names[0] || 'Esquerda') + ' x ' + esc(settings.names[1] || 'Direita')) : '')) +
-        row('Voz', VOICE_NAME[settings.voice] + ', ' + countHave(settings.voice) + ' de 28 faixas') + '</div>';
+        row('Voz', VOICE_NAME[settings.voice] + ', ' + countHave(settings.voice) + ' de ' + TOTAL + ' faixas') + '</div>';
     }
     var y = body.parentNode.scrollTop;
     body.innerHTML = h;
@@ -530,6 +531,8 @@
   window.addEventListener('resize', fitPanel);
 
   /* ---------- jogo ---------- */
+  var CALLS = [[29, 'Let'], [32, 'Out'], [27, 'Time'], [38, 'Play'], [33, 'Quiet, please'], [31, 'Foot fault'], [34, 'Double fault'], [30, 'Warning'], [37, 'Time violation'], [35, 'Code violation'], [36, 'Point penalty']];
+  var callsOpen = false, toastT = null;
   var namesKey = '', S = null, lastSay = 0, lastTick = 0, ticker = null, lastSave = 0, saved = false, lastTap = [0, 0], menuOpen = false, overlayKey = '';
   var wake = null;
 
@@ -636,6 +639,8 @@
     a.textContent = ph === 'ocioso' ? (S.cfg.heat ? 'Iniciar aquecimento' : 'Iniciar partida') : ph === 'aquecimento' ? 'Iniciar partida' : 'Pular intervalo';
     $('gUndo').disabled = !S.history.length || ph === 'ocioso';
     $('gPause').disabled = ph === 'fim';
+    $('gCallsBtn').hidden = ph === 'fim';
+    if ((S.paused || menuOpen || ph === 'fim') && callsOpen) showCalls(false);
     fitPanel();
     renderOverlays();
   }
@@ -666,8 +671,8 @@
     pov.innerHTML = '<div class="card"><h2>' + (paused ? 'Pausado' : 'Menu') + '</h2>' +
       '<div class="stack" style="margin-top:14px"><button class="btn primary big" id="mResume">' + (paused ? 'Continuar' : 'Fechar') + '</button></div>' +
       '<div class="group" style="margin-top:16px"><span class="lbl">Voz</span><div class="opts two">' +
-      optBtns('mvoice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/28' }, { v: 'M', t: 'Masculina', s: countHave('M') + '/28' }], v) + '</div></div>' +
-      (countHave(v) < 28 ? '<div class="status warn">Faltam ' + (28 - countHave(v)) + ' faixas nesta voz. <div class="miss">' + trackList(missing(v)) + '</div></div>' : '') +
+      optBtns('mvoice', [{ v: 'F', t: 'Feminina', s: countHave('F') + '/' + TOTAL }, { v: 'M', t: 'Masculina', s: countHave('M') + '/' + TOTAL }], v) + '</div></div>' +
+      (countHave(v) < TOTAL ? '<div class="status warn">Faltam ' + (TOTAL - countHave(v)) + ' faixas nesta voz. <div class="miss">' + trackList(missing(v)) + '</div></div>' : '') +
       (S.mode === 'D' ? [0, 1].map(function (t) {
         var tn = teamNames(t);
         return '<div class="group"><span class="lbl">Próximo a sacar na dupla ' + (t === 0 ? 'da esquerda' : 'da direita') + '</span><div class="opts two">' + optBtns('dnext' + t, [{ v: 0, t: esc(tn[0]) }, { v: 1, t: esc(tn[1]) }], S.d.next[t]) + '</div></div>';
@@ -692,8 +697,26 @@
     $('mReset').onclick = function () { confirmBox('Zerar a partida atual? O placar e o relógio serão apagados.', 'Zerar', function () { LS.del(K.cur); S = null; menuOpen = false; openWizard(0); }); };
   }
 
+  function showCalls(open) {
+    callsOpen = open;
+    var p = $('gCalls');
+    if (!open) { p.hidden = true; return; }
+    p.innerHTML = CALLS.map(function (c) { return '<button data-call="' + c[0] + '">' + esc(c[1]) + '</button>'; }).join('') + '<button class="close" id="callsClose">Fechar</button>';
+    p.hidden = false;
+    p.querySelectorAll('[data-call]').forEach(function (b) {
+      b.onclick = function () {
+        var n = +b.getAttribute('data-call'); ensureCtx(); playTracks([n]);
+        var t = $('gToast'); t.textContent = b.textContent; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 1300);
+        showCalls(false);
+      };
+    });
+    $('callsClose').onclick = function () { showCalls(false); };
+  }
+  $('gCallsBtn').onclick = function () { if (S && S.phase !== 'fim' && !S.paused && !menuOpen) showCalls(!callsOpen); };
+
   function tap(side) {
     if (!S || current !== 'game' || S.paused || menuOpen) return;
+    if (callsOpen) showCalls(false);
     var now = Date.now();
     if (now - lastTap[side] < 220) return;
     lastTap[side] = now;

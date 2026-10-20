@@ -1,6 +1,6 @@
 /* Cache do app para funcionar offline depois da primeira abertura.
    Mude VERSION a cada publicação para os aparelhos pegarem os arquivos novos. */
-var VERSION = 'placar-v7';
+var VERSION = 'placar-v8';
 var FILES = [
   './', 'index.html', 'style.css', 'app.js', 'engine.js', 'panel-geom.js', 'auth-config.js', 'manifest.webmanifest',
   'demo3d.html', 'vendor/three.min.js', 'vendor/OrbitControls.js',

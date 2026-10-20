@@ -81,7 +81,13 @@ input[type=range]{width:100%;height:40px}
 .names span{position:absolute;top:0;width:45%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #nameL{left:.5%;color:#8fb0ff}
 .names b.nm{font-weight:700;opacity:.72}.names b.srv{font-weight:900;opacity:1;border-bottom:calc(var(--u) * 1.4) solid currentColor}.names i{opacity:.5;margin:0 .3em;font-style:normal}#nameR{left:54%;color:var(--yellow)}
-.pw .action{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--u) * 146);width:calc(var(--u) * 68);height:calc(var(--u) * 26);min-height:44px;padding:4px 6px;font-size:max(13px,calc(var(--u) * 7));line-height:1.1;text-align:center}
+.pw .calls{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--u) * 160);width:calc(var(--u) * 68);height:calc(var(--u) * 26);min-height:44px;padding:4px 6px;font-size:max(13px,calc(var(--u) * 7));line-height:1.1;text-align:center;background:#1d2633}
+.pw .action{position:absolute;left:50%;transform:translateX(-50%);top:calc(var(--u) * 130);width:calc(var(--u) * 68);height:calc(var(--u) * 26);min-height:44px;padding:4px 6px;font-size:max(13px,calc(var(--u) * 7));line-height:1.1;text-align:center}
+.callspanel{position:absolute;left:calc(var(--sal) + var(--zw) + 14px);right:calc(var(--sar) + var(--zw) + 14px);bottom:calc(var(--sab) + 6px);height:46%;background:rgba(5,8,12,.97);border:2px solid #2b3440;border-radius:14px;padding:8px;display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:1fr 1fr;gap:8px;z-index:4}
+.callspanel button{border:2px solid #3a4658;border-radius:12px;background:#1d2633;color:#fff;font-weight:800;font-size:clamp(14px,3.6vh,24px);line-height:1.1;padding:4px;cursor:pointer}
+.callspanel button:active{filter:brightness(1.4)}
+.callspanel button.close{background:transparent;color:#a9b6c6;border-color:#2b3440}
+.toast{position:absolute;left:50%;top:calc(var(--sat) + 10px);transform:translateX(-50%);padding:10px 22px;border-radius:12px;background:rgba(255,255,255,.95);color:#0b0f14;font-weight:900;font-size:clamp(18px,5vh,30px);z-index:7;pointer-events:none}
 .pov{position:absolute;inset:0;background:rgba(5,8,12,.95);display:flex;align-items:center;justify-content:center;padding:14px;overflow:auto;z-index:5}
 .pov .card{max-width:520px}
 .endov{position:absolute;inset:0;background:rgba(5,8,12,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px;z-index:6}

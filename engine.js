@@ -11,7 +11,8 @@
     1: 'Love-All', 2: 'Love-15', 3: 'Love-30', 4: 'Love-40', 5: '15-Love', 6: '15-All', 7: '15-30', 8: '15-40',
     9: '30-Love', 10: '30-15', 11: '30-All', 12: '30-40', 13: '40-Love', 14: '40-15', 15: '40-30', 16: 'Deuce',
     17: 'Advantage In', 18: 'Advantage Out', 19: 'Game', 20: 'Game and Set', 21: 'Game, Set and Match',
-    22: 'Set Point In', 23: 'Set Point Out', 24: 'Match Point In', 25: 'Match Point Out', 26: 'Tie-break', 27: 'Time', 28: 'Change Ends'
+    22: 'Set Point In', 23: 'Set Point Out', 24: 'Match Point In', 25: 'Match Point Out', 26: 'Tie-break', 27: 'Time', 28: 'Change Ends',
+    29: 'Let', 30: 'Warning', 31: 'Foot fault', 32: 'Out', 33: 'Quiet, please', 34: 'Double fault', 35: 'Code violation', 36: 'Point penalty', 37: 'Time violation', 38: 'Play'
   };
   var SCORE_TRACK = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 16]]; /* [sacador][recebedor] */
   var SCORE = ['zero', 'quinze', 'trinta', 'quarenta'];
