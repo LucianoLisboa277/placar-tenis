@@ -11,6 +11,16 @@ window.PLACAR_ACCESS = {
       "name": "Vini",
       "salt": "ec8f9ef622bd0882b9346d3c025fdc19",
       "hash": "429c27732ff3fa0b0d996ccafbea0797c0c42daeb3bdc63980675d03f0bb6a45"
+    },
+    {
+      "name": "Alex",
+      "salt": "6bcd64ae4336d08fe9f9b65ebfe2650e",
+      "hash": "f0de799c696d84796a3b35fcf38add016ce56466699c2f97c450cd7cedd33a80"
+    },
+    {
+      "name": "Rosildo",
+      "salt": "905cad3bc2ce19f031952651c5c85307",
+      "hash": "1174e260cbd12da3cacb9833b9bdb456f88021e0eb960e471843e2961ad16502"
     }
   ]
 };
