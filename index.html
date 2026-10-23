@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="boot" role="status" aria-live="polite"><div class="spin" aria-hidden="true"></div><div id="bootTxt">Carregando…</div></div>
 <main id="app"></main>
 <section id="game" hidden>
   <div id="stageHost">
@@ -23,6 +24,7 @@
 <div id="rotate" hidden></div>
 <div id="modal" class="modal" hidden></div>
 <div id="toast" role="status" hidden></div>
+<script>setTimeout(function(){var b=document.getElementById("bootTxt");if(b&&document.getElementById("boot"))b.textContent="O app está demorando. Confira a internet e atualize a página."},12000)</script>
 <script src="auth-config.js"></script>
 <script src="engine.js"></script>
 <script src="app.js"></script>

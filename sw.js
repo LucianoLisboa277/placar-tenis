@@ -1,6 +1,6 @@
 /* Cache do app para funcionar offline depois da primeira abertura.
    Mude VERSION a cada publicação para os aparelhos pegarem os arquivos novos. */
-var VERSION = 'placar-v13';
+var VERSION = 'placar-v15';
 var FILES = [
   './', 'index.html', 'style.css', 'app.js', 'engine.js', 'auth-config.js', 'manifest.webmanifest',
   'fonts/source-sans-3-latin-400-normal.woff2', 'fonts/source-sans-3-latin-600-normal.woff2', 'fonts/source-sans-3-latin-700-normal.woff2',
@@ -18,6 +18,13 @@ self.addEventListener('fetch', function (e) {
   var req = e.request;
   var u = new URL(req.url);
   if (req.method !== 'GET' || u.origin !== location.origin || u.pathname.indexOf('/voices/') >= 0) return;   /* vozes ficam no IndexedDB, não no cache */
+  if (/\/auth-config\.js$/.test(u.pathname)) {   /* lista de usuários: sempre a versão mais nova, e a guardada só sem internet */
+    e.respondWith(fetch(req, { cache: 'no-store' }).then(function (res) {
+      if (res && res.ok) { var cp = res.clone(); caches.open(VERSION).then(function (c) { c.put(req, cp); }); }
+      return res;
+    }).catch(function () { return caches.match(req, { ignoreSearch: true }); }));
+    return;
+  }
   e.respondWith(caches.open(VERSION).then(function (cache) {
     return cache.match(req, { ignoreSearch: true }).then(function (hit) {
       var net = fetch(req).then(function (res) {
