@@ -572,14 +572,24 @@
     setTimeout(fitStage, 150);
   }
   function leaveGame() { persist(true); ov = null; renderHome(); }
+  /* Lado da horizontal em que o controle remoto funciona (barra de navegação à esquerda).
+     Se o controle falhar com a tela travada, trocar por 'landscape-primary'. */
+  var RC_SIDE = 'landscape-secondary';
+  function lockLandscape() {
+    try {
+      if (!(screen.orientation && screen.orientation.lock)) return;
+      var side = settings.input === 'ctrl' ? RC_SIDE : 'landscape';
+      screen.orientation.lock(side).catch(function () {
+        if (side !== 'landscape') screen.orientation.lock('landscape').catch(function () {});
+      });
+    } catch (e) {}
+  }
   function requestFullscreenLandscape() {
     try {
       var el = document.documentElement;
       if (!document.fullscreenElement && el.requestFullscreen) {
-        el.requestFullscreen({ navigationUI: 'hide' }).then(function () {
-          if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
-        }).catch(function () {});
-      } else if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
+        el.requestFullscreen({ navigationUI: 'hide' }).then(lockLandscape).catch(function () {});
+      } else lockLandscape();
     } catch (e) {}
   }
   function exitLandscape() {
@@ -1029,7 +1039,7 @@
         else if (p[1] === 'end') ov = 'end';
         else if (p[1] === 'reset') ov = 'reset';
         renderGame(); return;
-      case 'inp': settings.input = p[1] === 'ctrl' ? 'ctrl' : 'cel'; saveSettings(); RC.prev = null; renderGame(); return;
+      case 'inp': settings.input = p[1] === 'ctrl' ? 'ctrl' : 'cel'; saveSettings(); RC.prev = null; lockLandscape(); renderGame(); return;
       case 'lang': settings.lang = p[1]; saveSettings(); stopAudio(); preload(); renderGame(); return;
       case 'voice': settings.voice = p[1]; saveSettings(); stopAudio(); preload(); renderGame(); return;
       case 'vtest': ensureCtx(); playTracks([27]); return;
@@ -1105,12 +1115,13 @@
   function rcPen(e) { return e.pointerType === 'pen' && current === 'game' && !!S; }
   window.addEventListener('pointerdown', function (e) {
     if (!rcPen(e)) return;
-    e.stopPropagation(); RC.g[e.pointerId] = { x: e.clientX, y: e.clientY, d: 0 };
+    e.stopPropagation(); RC.g[e.pointerId] = { x: e.clientX, y: e.clientY, d: 0, n: 0, lx: 0, ly: 0 };
   }, true);
   window.addEventListener('pointermove', function (e) {
     var g = RC.g[e.pointerId]; if (!g || e.pointerType !== 'pen') return;
     e.stopPropagation();
     var dx = e.clientX - g.x, dy = e.clientY - g.y, d = Math.sqrt(dx * dx + dy * dy); if (d > g.d) g.d = d;
+    g.n++; g.lx = dx; g.ly = dy;
   }, true);
   window.addEventListener('pointerup', function (e) {
     var g = RC.g[e.pointerId]; if (!g || e.pointerType !== 'pen') return;
@@ -1120,7 +1131,10 @@
     rcSignal(dist < 10 ? 'toque' : 'deslize', dist < 10 ? 'A' : rcDir(dx, dy), performance.now());
   }, true);
   window.addEventListener('pointercancel', function (e) {
-    if (RC.g[e.pointerId]) { delete RC.g[e.pointerId]; e.stopPropagation(); }
+    var g = RC.g[e.pointerId]; if (!g) return;
+    e.stopPropagation(); delete RC.g[e.pointerId];
+    /* setas do controle: o navegador assume o arrasto como rolagem e cancela o ponteiro. Com movimento, vale como deslize. */
+    if (g.n > 0 && current === 'game' && S) rcSignal('deslize', rcDir(g.lx, g.ly), performance.now());
   }, true);
   window.addEventListener('click', function (e) {
     if (e.pointerType === 'pen' && current === 'game') { e.stopPropagation(); e.preventDefault(); }

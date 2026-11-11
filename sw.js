@@ -1,6 +1,6 @@
 /* Cache do app para funcionar offline depois da primeira abertura.
    Mude VERSION a cada publicação para os aparelhos pegarem os arquivos novos. */
-var VERSION = 'placar-v16';
+var VERSION = 'placar-v17';
 var FILES = [
   './', 'index.html', 'style.css', 'app.js', 'engine.js', 'auth-config.js', 'manifest.webmanifest',
   'fonts/source-sans-3-latin-400-normal.woff2', 'fonts/source-sans-3-latin-600-normal.woff2', 'fonts/source-sans-3-latin-700-normal.woff2',
